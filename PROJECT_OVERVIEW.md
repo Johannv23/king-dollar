@@ -82,7 +82,43 @@ tdi-intern-project/
 > Bear case data is intentionally included. The goal is honest analysis, not a skewed output. If the data partially contradicts the thesis, the Judge agent weighs it. A partial confirmation is more credible than a clean sweep.
 
 ## Current Status
-DXY data pulled (2000–2026, monthly). Project structure scaffolded. Remaining data not yet pulled.
+*(Updated June 11, 2026)*
 
-**Next step:** Build out `fetch.py` — pull all remaining series from yFinance and FRED.
+`fetch.py` structure finalized. All 18 series mapped and coded. Not yet run end-to-end.
+
+### fetch.py Design Decisions
+
+**Looped fetching instead of individual functions**
+Both `fetch_yfinance()` and `fetch_fred()` use a dict mapping ticker/code → filename and iterate over it, rather than writing a separate download block per series. Reason: 12 yFinance tickers and 7 FRED series would have been ~80 lines of near-identical code. The loop is easier to extend (add a ticker to the dict, done) and easier to read.
+
+**FRED series saved with `.to_frame(name=code)`**
+`fred.get_series()` returns a pandas Series with no column name. Calling `.to_frame(name=code)` before `.to_csv()` gives the value column a proper header (e.g. `FEDFUNDS`), consistent with how yFinance CSVs are structured. Makes merging in `thesis.py` straightforward — no unnamed columns to deal with.
+
+**`progress=False` on yFinance downloads**
+Suppresses the tqdm progress bar per ticker, which would clutter the terminal across 12 downloads. Status is handled by the `print()` calls instead.
+
+**All CSVs land in `data/raw/`**
+Both functions call `os.makedirs("data/raw", exist_ok=True)` so the directory is created on first run regardless of which function runs first.
+
+**`thesis.py` complete.** Charts (`visualize.py`) are the next remaining piece for the lower tier.
+
+### thesis.py — What Was Built & Why
+
+**Step 2 — Rate differential:** Computed two versions — `RATE_DIFF_10Y` (US10Y − ECB, market-forward) and `RATE_DIFF_POLICY` (Fed Funds − ECB, what was actually done). Used both because currency markets price off longer-term differentials, not just the overnight rate. Rolling 24-month correlation with DXY showed the 10Y version peaked at +0.81 in Feb 2025 then turned negative (-0.53) by mid-2025 — the mechanism broke down, likely due to tariff/policy uncertainty.
+
+**Step 3 — EM stress:** Rolling 24-month correlations of DXY vs. EMB, EEM, BRL, TRY, INR. Expected negative — dollar up, EM down. EMB, EEM, TRY, INR all confirmed. BRL was a positive outlier (+0.81) — Brazil's commodity exports and aggressive rate hikes drove BRL independently of DXY.
+
+**Step 4 — Safe haven:** Correlated DXY vs. VIX, Gold, Oil, S&P 500. Key finding: VIX near zero (0.05) — the dollar decline is not fear-driven, supporting the cyclical thesis. Gold (-0.69) and SP500 (-0.57) behaved as expected.
+
+**Step 5 — Bear case trends:** Directional check only (no regression — FEDERAL_DEFICIT and CURRENT_ACCOUNT are quarterly/annual forward-filled, not suitable for month-over-month regression). Trade deficit spike in early 2025 was tariff front-running, now normalized. Foreign Treasury holdings rose ($8,528B → $9,248B) — foreigners are not dumping US assets. Bear case is structurally weak.
+
+**Step 6 — Regression:** OLS on monthly DXY returns. R²=0.167. RATE_DIFF_CHG (+0.016, p=0.000) and SP500_RETURN (-0.188, p=0.000) are significant. VIX_CHG is noise (p=0.960). Used changes/returns (not levels) to avoid spurious correlation from trending series.
+
+**Step 7 — Verdict:** Programmatic signal tally (5 bull, 4 bear checks). Confidence computed as bull/(bull+bear). Verdict: THESIS PARTIALLY SUPPORTED at moderate confidence.
+
+### Data Quality Notes (observed after fetch)
+
+- **Missing early data** — EMB starts Dec 2007, EEM from Apr 2003, BRL/TRY from late 2003. DXY-vs-EMB correlation sample is effectively 2007–present (~18 years), not 2000. Report sample period explicitly in analysis.
+- **FEDERAL_DEFICIT is sparse** — annual/quarterly figure forward-filled across months. Do not use in month-over-month regression. Use only for directional context (e.g. chart annotation).
+- **Unnamed index column** — CSVs have a leading comma on row 1. Handled by `index_col=0` in the `load()` helper. Added `df.loc[:, ~df.columns.str.contains("^Unnamed")]` after `pd.concat()` as a cleanup safeguard.
 
