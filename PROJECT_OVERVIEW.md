@@ -100,7 +100,7 @@ Suppresses the tqdm progress bar per ticker, which would clutter the terminal ac
 **All CSVs land in `data/raw/`**
 Both functions call `os.makedirs("data/raw", exist_ok=True)` so the directory is created on first run regardless of which function runs first.
 
-**`thesis.py` complete.** Charts (`visualize.py`) are the next remaining piece for the lower tier.
+**`thesis.py` and `visualize.py` complete.** README and 10-minute presentation are the remaining pieces for the lower tier.
 
 ### thesis.py — What Was Built & Why
 
@@ -115,6 +115,16 @@ Both functions call `os.makedirs("data/raw", exist_ok=True)` so the directory is
 **Step 6 — Regression:** OLS on monthly DXY returns. R²=0.167. RATE_DIFF_CHG (+0.016, p=0.000) and SP500_RETURN (-0.188, p=0.000) are significant. VIX_CHG is noise (p=0.960). Used changes/returns (not levels) to avoid spurious correlation from trending series.
 
 **Step 7 — Verdict:** Programmatic signal tally (5 bull, 4 bear checks). Confidence computed as bull/(bull+bear). Verdict: THESIS PARTIALLY SUPPORTED at moderate confidence.
+
+### visualize.py — What Was Built & Why
+
+Three charts saved to `charts/output/`:
+
+**Chart 1 — DXY history with annotated events:** Full price history from 2000–present with key macro events marked (GFC, Fed taper, COVID, Fed hike peak, 2025 decline). Purpose: shows the dollar has gone through cycles before — the 2025 decline fits a historical pattern, not a structural break.
+
+**Chart 2 — DXY vs. rate differential (two-panel):** Top panel overlays DXY and the US10Y−ECB rate differential. Bottom panel shows the rolling 24-month correlation over time. Purpose: tells the core bull case story — the mechanism was strongly positive (+0.81) then broke down (-0.53), which is the central tension of the thesis.
+
+**Chart 3 — EM stress correlations bar chart:** Latest rolling 24M correlation of DXY vs. EMB, EEM, BRL, TRY, INR. Red = negative (expected), green = positive (anomaly). Purpose: shows EM stress mechanism is broadly working, with BRL flagged as an outlier driven by local factors.
 
 ### Data Quality Notes (observed after fetch)
 
