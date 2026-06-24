@@ -7,6 +7,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import os
+from matplotlib.patches import Patch
+
 
 # ── SETUP ─────────────────────────────────────────────────────────────────────
 os.makedirs("charts/output", exist_ok=True)
@@ -25,6 +27,8 @@ df["CORR_EEM"]      = df["DXY"].rolling(24).corr(df["EEM"])
 df["CORR_BRL"]      = df["DXY"].rolling(24).corr(df["BRL"])
 df["CORR_TRY"]      = df["DXY"].rolling(24).corr(df["TRY"])
 df["CORR_INR"]      = df["DXY"].rolling(24).corr(df["INR"])
+df["DXY_3M_RETURN"] = df["DXY"].pct_change(3) * 100
+df["STRONG_DOLLAR"]  = df["DXY_3M_RETURN"] > 3
 
 
 # ── CHART 1: DXY PRICE HISTORY WITH ANNOTATED EVENTS ─────────────────────────
@@ -145,5 +149,45 @@ plt.tight_layout()
 plt.savefig("charts/output/chart3_em_correlations.png", dpi=150)
 plt.close()
 print("Saved chart3_em_correlations.png")
+
+# ── CHART 1: DXY HISTORY WITH STRONG DOLLAR PERIODS HIGHLIGHTED ───────────────
+fig, ax = plt.subplots(figsize=(12, 5))
+
+ax.plot(df.index, df["DXY"], color="#1f77b4", linewidth=1.5, label="DXY")
+
+# shade strong dollar periods
+in_period = False
+start = None
+for date, row in df.iterrows():
+    if row["STRONG_DOLLAR"] and not in_period:
+        start = date
+        in_period = True
+    elif not row["STRONG_DOLLAR"] and in_period:
+        ax.axvspan(start, date, color="green", alpha=0.15)
+        in_period = False
+if in_period:
+    ax.axvspan(start, df.index[-1], color="green", alpha=0.15)
+
+# annotate key episodes
+ax.annotate("2014–15\nFed taper", xy=(pd.Timestamp("2014-09-01"), 85),
+            fontsize=7.5, ha="center", color="green")
+ax.annotate("2022\nFed hikes", xy=(pd.Timestamp("2022-07-01"), 93),
+            fontsize=7.5, ha="center", color="green")
+
+ax.set_title("DXY Dollar Index — Strong Dollar Periods (DXY +3% over 90 days)", fontsize=13, fontweight="bold")
+ax.set_ylabel("DXY Level")
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+ax.xaxis.set_major_locator(mdates.YearLocator(2))
+ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+ax.legend(handles=[
+    plt.Line2D([0], [0], color="#1f77b4", linewidth=1.5, label="DXY"),
+    Patch(color="green", alpha=0.3, label="Strong dollar period (DXY +3% / 90 days)")
+])
+
+plt.tight_layout()
+plt.savefig("charts/output/chart1_dxy_strong_periods.png", dpi=150)
+plt.close()
+print("Saved chart1_dxy_strong_periods.png")
 
 print("\nAll charts saved to charts/output/")

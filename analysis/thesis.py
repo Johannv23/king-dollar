@@ -31,7 +31,8 @@ df["RATE_DIFF_POLICY"] = df["FEDFUNDS"] - df["ECBRATE"]
 df["CORR_10Y"]    = df["DXY"].rolling(24).corr(df["RATE_DIFF_10Y"])
 df["CORR_POLICY"] = df["DXY"].rolling(24).corr(df["RATE_DIFF_POLICY"])
 
-
+df["DXY_3M_RETURN"] = df["DXY"].pct_change(3) * 100
+df["STRONG_DOLLAR"]  = df["DXY_3M_RETURN"] > 3
 # ── 3. EM STRESS CORRELATIONS ─────────────────────────────────────────────────
 # If the dollar strengthens, EM assets should weaken (negative correlation expected).
 # EMB starts Dec 2007, EEM from Apr 2003, BRL/TRY from late 2003 — sample is ~18 years not 26.
@@ -144,3 +145,15 @@ print("The structural bear case is weak — foreigners are buying Treasuries, de
 print("improving, and VIX is calm. However the rate differential mechanism has broken down")
 print("recently, suggesting sentiment and policy uncertainty are dominating fundamentals.")
 print("A rebound is more likely than a continued slide, but the timeline is uncertain.")
+
+# define strong dollar periods
+# monthly data so 90 days ≈ 3 months
+df["DXY_3M_RETURN"] = df["DXY"].pct_change(3) * 100
+
+# flag: True = strong dollar period
+df["STRONG_DOLLAR"] = df["DXY_3M_RETURN"] > 3
+print("------------------------------------------------------------------------")
+print(df[["DXY", "DXY_3M_RETURN", "STRONG_DOLLAR"]].dropna().tail(30))
+print(f"\nTotal months flagged as strong dollar: {df['STRONG_DOLLAR'].sum()}")
+print(df[["DXY", "DXY_3M_RETURN", "STRONG_DOLLAR"]]["2022-01-01":"2023-01-01"])
+
