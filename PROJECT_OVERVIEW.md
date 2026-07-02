@@ -1,5 +1,5 @@
 # TDI Intern Project — Project Process - Johann Varghese
-*Last updated: June 22, 2026*
+*Last updated: July 2, 2026*
 
 ---
 
@@ -120,11 +120,13 @@ Both functions call `os.makedirs("data/raw", exist_ok=True)` so the directory is
 
 Three charts saved to `charts/output/`:
 
-**Chart 1 — DXY history with annotated events:** Full price history from 2000–present with key macro events marked (GFC, Fed taper, COVID, Fed hike peak, 2025 decline). Purpose: shows the dollar has gone through cycles before — the 2025 decline fits a historical pattern, not a structural break.
-
 **Chart 2 — DXY vs. rate differential (two-panel):** Top panel overlays DXY and the US10Y−ECB rate differential. Bottom panel shows the rolling 24-month correlation over time. Purpose: tells the core bull case story — the mechanism was strongly positive (+0.81) then broke down (-0.53), which is the central tension of the thesis.
 
 **Chart 3 — EM stress correlations bar chart:** Latest rolling 24M correlation of DXY vs. EMB, EEM, BRL, TRY, INR. Red = negative (expected), green = positive (anomaly). Purpose: shows EM stress mechanism is broadly working, with BRL flagged as an outlier driven by local factors.
+
+**Chart 4 — 2022 zoom, normalized to 100:** DXY, EEM, Gold, and Oil all indexed to 100 in Jan 2022 and plotted through year-end. Green shading marks strong dollar months using the same DXY +3%/90-day rule as the other charts. Purpose: makes the inverse relationship between DXY and the other assets visually obvious at the episode level.
+
+*Note: An earlier Chart 1 (DXY full history with annotated macro events) was removed once Chart 4 superseded its storytelling role for the 2022 hike cycle.*
 
 ### Data Quality Notes (observed after fetch)
 

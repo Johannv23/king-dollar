@@ -33,6 +33,39 @@ df["CORR_POLICY"] = df["DXY"].rolling(24).corr(df["RATE_DIFF_POLICY"])
 
 df["DXY_3M_RETURN"] = df["DXY"].pct_change(3) * 100
 df["STRONG_DOLLAR"]  = df["DXY_3M_RETURN"] > 3
+
+# ── 8. ASSET PERFORMANCE DURING STRONG DOLLAR PERIODS ────────────────────────
+# For each asset, compute monthly returns then compare:
+#   - average return during strong dollar periods
+#   - average return during all other periods
+# This is the core empirical test: when the dollar surges, what gets hit?
+
+assets = ["EMB", "EEM", "GOLD", "OIL", "BRL", "TRY", "INR", "SP500"]
+
+# compute monthly returns for each asset
+returns = {}
+for asset in assets:
+    returns[asset] = df[asset].pct_change() * 100
+
+returns_df = pd.DataFrame(returns, index=df.index)
+returns_df["STRONG_DOLLAR"] = df["STRONG_DOLLAR"]
+
+# split into strong dollar vs other periods
+strong = returns_df[returns_df["STRONG_DOLLAR"] == True]
+other  = returns_df[returns_df["STRONG_DOLLAR"] == False]
+
+# build comparison table
+results = pd.DataFrame({
+    "Avg Return (Strong $)": strong[assets].mean(),
+    "Avg Return (Other)":    other[assets].mean(),
+    "Difference":            strong[assets].mean() - other[assets].mean(),
+})
+
+results["Hit Rate (%)"] = (strong[assets] < 0).mean() * 100
+print("added results line")
+
+print("=== ASSET PERFORMANCE: STRONG DOLLAR vs. OTHER PERIODS ===")
+print(results.round(2))
 # ── 3. EM STRESS CORRELATIONS ─────────────────────────────────────────────────
 # If the dollar strengthens, EM assets should weaken (negative correlation expected).
 # EMB starts Dec 2007, EEM from Apr 2003, BRL/TRY from late 2003 — sample is ~18 years not 26.
@@ -83,6 +116,7 @@ reg_df = df[["DXY_RETURN", "RATE_DIFF_CHG", "VIX_CHG", "SP500_RETURN"]].dropna()
 # SP500_RETURN:  coef=-0.188, p=0.000 — significant, risk-on = dollar outflows
 # VIX_CHG:       coef=-0.0003, p=0.960 — not significant, VIX is noise for DXY
 model = smf.ols("DXY_RETURN ~ RATE_DIFF_CHG + VIX_CHG + SP500_RETURN", data=reg_df).fit()
+
 
 
 # ── 7. VERDICT ────────────────────────────────────────────────────────────────
@@ -157,3 +191,12 @@ print(df[["DXY", "DXY_3M_RETURN", "STRONG_DOLLAR"]].dropna().tail(30))
 print(f"\nTotal months flagged as strong dollar: {df['STRONG_DOLLAR'].sum()}")
 print(df[["DXY", "DXY_3M_RETURN", "STRONG_DOLLAR"]]["2022-01-01":"2023-01-01"])
 
+# filter to 2022 strong dollar months
+case_2022 = returns_df["2022-04-01":"2022-10-01"]
+case_2022_strong = case_2022[case_2022["STRONG_DOLLAR"] == True]
+
+# cumulative return over the period (not average)
+cumulative = ((1 + case_2022_strong[assets] / 100).prod() - 1) * 100
+
+print("=== 2022 CASE STUDY: FED HIKE CYCLE (STRONG DOLLAR MONTHS) ===")
+print(cumulative.round(2))

@@ -31,44 +31,6 @@ df["DXY_3M_RETURN"] = df["DXY"].pct_change(3) * 100
 df["STRONG_DOLLAR"]  = df["DXY_3M_RETURN"] > 3
 
 
-# ── CHART 1: DXY PRICE HISTORY WITH ANNOTATED EVENTS ─────────────────────────
-# Shows the full dollar cycle from 2000–present with key events marked.
-# Tells the story: dollar has gone through cycles before — this decline fits the pattern.
-fig, ax = plt.subplots(figsize=(12, 5))
-
-ax.plot(df.index, df["DXY"], color="#1f77b4", linewidth=1.5, label="DXY")
-ax.fill_between(df.index, df["DXY"], alpha=0.08, color="#1f77b4")
-
-# annotate key events
-events = {
-    "2008-09-01": ("GFC", "down"),
-    "2014-07-01": ("Fed taper / USD surge", "up"),
-    "2020-03-01": ("COVID crash", "down"),
-    "2022-09-01": ("Fed hike cycle peak", "up"),
-    "2025-01-01": ("2025 decline begins", "down"),
-}
-
-for date, (label, direction) in events.items():
-    if date in df.index.strftime("%Y-%m-%d").tolist():
-        x = pd.Timestamp(date)
-        y = df.loc[x, "DXY"]
-        offset = 4 if direction == "up" else -6
-        ax.annotate(label, xy=(x, y), xytext=(x, y + offset),
-                    fontsize=7.5, ha="center", color="gray",
-                    arrowprops=dict(arrowstyle="-", color="gray", lw=0.8))
-
-ax.set_title("DXY Dollar Index (2000–Present)", fontsize=13, fontweight="bold")
-ax.set_ylabel("DXY Level")
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-ax.xaxis.set_major_locator(mdates.YearLocator(2))
-ax.grid(axis="y", linestyle="--", alpha=0.4)
-ax.legend()
-plt.tight_layout()
-plt.savefig("charts/output/chart1_dxy_history.png", dpi=150)
-plt.close()
-print("Saved chart1_dxy_history.png")
-
-
 # ── CHART 2: DXY vs RATE DIFFERENTIAL + ROLLING CORRELATION ──────────────────
 # Two-panel chart: top = DXY and rate differential levels, bottom = rolling correlation.
 # Shows the mechanism working (positive correlation) then breaking down mid-2025.
@@ -112,7 +74,6 @@ print("Saved chart2_rate_diff_correlation.png")
 # ── CHART 3: EM STRESS CORRELATIONS BAR CHART ────────────────────────────────
 # Latest rolling correlation of DXY vs each EM series.
 # Negative = dollar strength hurts EM (expected). BRL positive = anomaly.
-from matplotlib.patches import Patch
 
 latest = {
     "EMB":  df["CORR_EMB"].dropna().iloc[-1],
@@ -150,15 +111,29 @@ plt.savefig("charts/output/chart3_em_correlations.png", dpi=150)
 plt.close()
 print("Saved chart3_em_correlations.png")
 
-# ── CHART 1: DXY HISTORY WITH STRONG DOLLAR PERIODS HIGHLIGHTED ───────────────
-fig, ax = plt.subplots(figsize=(12, 5))
 
-ax.plot(df.index, df["DXY"], color="#1f77b4", linewidth=1.5, label="DXY")
 
-# shade strong dollar periods
+# ── CHART 4: 2022 ZOOM — DXY vs EEM / GOLD / OIL (NORMALIZED TO 100) ─────────
+zoom = df["2022":"2022"].copy()
+
+# normalize each series so Jan 2022 = 100
+base = zoom.iloc[0]
+for col in ["DXY", "EEM", "GOLD", "OIL"]:
+    zoom[col + "_N"] = zoom[col] / base[col] * 100
+
+fig, ax = plt.subplots(figsize=(12, 6))
+
+ax.plot(zoom.index, zoom["DXY_N"],  color="#1f77b4", linewidth=2,   label="DXY")
+ax.plot(zoom.index, zoom["EEM_N"],  color="#d62728", linewidth=1.5,  label="EEM (EM Equities)", linestyle="--")
+ax.plot(zoom.index, zoom["GOLD_N"], color="#ff7f0e", linewidth=1.5,  label="Gold",              linestyle="--")
+ax.plot(zoom.index, zoom["OIL_N"],  color="#2ca02c", linewidth=1.5,  label="Oil (WTI)",         linestyle="--")
+
+ax.axhline(100, color="black", linewidth=0.7, linestyle=":")
+
+# shade strong dollar periods (same rule as Chart 1)
 in_period = False
 start = None
-for date, row in df.iterrows():
+for date, row in zoom.iterrows():
     if row["STRONG_DOLLAR"] and not in_period:
         start = date
         in_period = True
@@ -166,28 +141,26 @@ for date, row in df.iterrows():
         ax.axvspan(start, date, color="green", alpha=0.15)
         in_period = False
 if in_period:
-    ax.axvspan(start, df.index[-1], color="green", alpha=0.15)
+    ax.axvspan(start, zoom.index[-1], color="green", alpha=0.15)
 
-# annotate key episodes
-ax.annotate("2014–15\nFed taper", xy=(pd.Timestamp("2014-09-01"), 85),
-            fontsize=7.5, ha="center", color="green")
-ax.annotate("2022\nFed hikes", xy=(pd.Timestamp("2022-07-01"), 93),
-            fontsize=7.5, ha="center", color="green")
-
-ax.set_title("DXY Dollar Index — Strong Dollar Periods (DXY +3% over 90 days)", fontsize=13, fontweight="bold")
-ax.set_ylabel("DXY Level")
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-ax.xaxis.set_major_locator(mdates.YearLocator(2))
-ax.grid(axis="y", linestyle="--", alpha=0.4)
-
+ax.set_title("2022: DXY vs. EEM, Gold & Oil — Normalized to 100 (Jan 2022)",
+             fontsize=13, fontweight="bold")
+ax.set_ylabel("Indexed Level (Jan 2022 = 100)")
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
+plt.xticks(rotation=45, ha="right")
 ax.legend(handles=[
-    plt.Line2D([0], [0], color="#1f77b4", linewidth=1.5, label="DXY"),
-    Patch(color="green", alpha=0.3, label="Strong dollar period (DXY +3% / 90 days)")
-])
-
+    plt.Line2D([0], [0], color="#1f77b4", linewidth=2,              label="DXY"),
+    plt.Line2D([0], [0], color="#d62728", linewidth=1.5, linestyle="--", label="EEM (EM Equities)"),
+    plt.Line2D([0], [0], color="#ff7f0e", linewidth=1.5, linestyle="--", label="Gold"),
+    plt.Line2D([0], [0], color="#2ca02c", linewidth=1.5, linestyle="--", label="Oil (WTI)"),
+    Patch(color="green", alpha=0.3, label="Strong dollar period (DXY +3% / 90 days)"),
+], fontsize=9, loc="upper right")
+ax.grid(axis="y", linestyle="--", alpha=0.4)
 plt.tight_layout()
-plt.savefig("charts/output/chart1_dxy_strong_periods.png", dpi=150)
+plt.savefig("charts/output/chart4_2022_normalized.png", dpi=150)
 plt.close()
-print("Saved chart1_dxy_strong_periods.png")
+print("Saved chart4_2022_normalized.png")
 
 print("\nAll charts saved to charts/output/")
+
